@@ -4,6 +4,6 @@ import uvicorn
 app = FastAPI()
 
 @app.get("/api/notify")
-def notify():
+async def notify():
     print("Получена команда /arpem")
     return {"status": "Message received"}
