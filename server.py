@@ -7,6 +7,7 @@ app = FastAPI()
 
 messages = []
 waiting_clients = []
+lock = asyncio.Lock()  # Добавляем блокировку для защиты ресурса
 
 class ChatMessage(BaseModel):
     username: str
@@ -15,12 +16,13 @@ class ChatMessage(BaseModel):
 
 @app.post("/api/notify")
 async def send_message(msg: ChatMessage):
-    messages.append(msg)  # Сохраняем сообщение
+    async with lock:  # Защищаем доступ к ресурсу
+        messages.append(msg)  # Сохраняем сообщение
 
-    # Отправляем сообщение всем ожидающим клиентам
-    while waiting_clients:
-        client = waiting_clients.pop(0)
-        await client.put([msg])
+        # Отправляем сообщение всем ожидающим клиентам
+        while waiting_clients:
+            client = waiting_clients.pop(0)
+            await client.put([msg])
 
     return {"status": "ok"}
 
