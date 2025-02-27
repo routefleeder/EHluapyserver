@@ -38,6 +38,6 @@ async def get_messages(username: str):
     except asyncio.TimeoutError:
         return []
     finally:
-    # Повторно добавляем клиента в список ожидания
-    if my_queue not in waiting_clients:
-        waiting_clients.append(my_queue)
+        # Повторно добавляем клиента в список ожидания
+        if my_queue not in waiting_clients:
+            waiting_clients.append(my_queue)
