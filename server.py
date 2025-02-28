@@ -20,8 +20,8 @@ async def send_message(msg: ChatMessage):
         messages.append(msg)
 
         while waiting_clients:
-            client = waiting_clients.pop(0)
-            await client.put([msg])
+            _, client_queue = waiting_clients.pop(0)
+            await client_queue.put([msg])
 
     return {"status": "ok"}
 
