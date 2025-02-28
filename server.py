@@ -29,9 +29,10 @@ async def send_message(msg: ChatMessage):
 async def get_messages(username: str):
     """ Клиент ждёт новые сообщения. Сервер не отвечает сразу, если их нет. """
     my_queue = asyncio.Queue()
-    waiting_clients.append(my_queue)
+    waiting_clients.append((username, my_queue))
 
     try:
-        return await my_queue.get()
+        messages = await my_queue.get()
+        return [msg for msg in messages if msg.username != username]
     except asyncio.CancelledError:
-        waiting_clients.remove(my_queue)
+        waiting_clients.remove((username, my_queue))
