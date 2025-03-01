@@ -19,9 +19,11 @@ async def send_message(msg: ChatMessage):
     async with lock:
         messages.append(msg)
 
-        while waiting_clients:
-            _, client_queue = waiting_clients.pop(0)
-            await client_queue.put([msg])
+        if waiting_clients:
+            print(f"Новое сообщение от {msg.username}: {msg.text}. Отправляем ожидающим клиентам...")
+            for username, client_queue in waiting_clients[:]:
+                if username != msg.username:
+                    await client_queue.put([msg])
 
     return {"status": "ok"}
 
@@ -29,10 +31,20 @@ async def send_message(msg: ChatMessage):
 async def get_messages(username: str):
     """ Клиент ждёт новые сообщения. Сервер не отвечает сразу, если их нет. """
     my_queue = asyncio.Queue()
-    waiting_clients.append((username, my_queue))
+    async with lock:
+        pending_messages = [msg for msg in messages if msg.username != username]
+        if pending_messages:
+            print(f"Клиент {username} подключился, сразу отправляем ему {len(pending_messages)} сообщений.")
+            return pending_messages
+
+        waiting_clients.append((username, my_queue))
 
     try:
-        messages = await my_queue.get()
-        return [msg for msg in messages if msg.username != username]
+        print(f"Клиент {username} ожидает сообщение...")
+        new_messages = await my_queue.get()
+        print(f"Отправляем сообщение клиенту {username}!")
+        return new_messages
     finally:
-        waiting_clients[:] = [(u, q) for u, q in waiting_clients if u != username or q != my_queue]
+        async with lock:
+            waiting_clients[:] = [(u, q) for u, q in waiting_clients if q != my_queue]
+            print(f"Клиент {username} удалён из очереди.")
