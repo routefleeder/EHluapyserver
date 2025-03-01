@@ -20,10 +20,9 @@ async def send_message(msg: ChatMessage):
         messages.append(msg)
         if waiting_clients:
             print(f"Новое сообщение от {msg.username}: {msg.text}. Отправляем ожидающим клиентам...")
-            for username, client_queue in waiting_clients[:]:
+            for username, client_queue in list(waiting_clients.items()):
                 if username != msg.username:
-                    await client_queue.put([messages[:]])
-            messages.clear()
+                    await client_queue.put(messages[:])
 
     return {"status": "ok"}
 
@@ -35,10 +34,9 @@ async def get_messages(username: str):
         pending_messages = [msg for msg in messages if msg.username != username]
         if pending_messages:
             print(f"Клиент {username} подключился, сразу отправляем ему {len(pending_messages)} сообщений.")
-            messages.clear()
             return pending_messages
         
-        waiting_clients.append((username, my_queue))
+        waiting_clients[username] = my_queue
 
     try:
         print(f"Клиент {username} ожидает сообщение...")
@@ -47,5 +45,22 @@ async def get_messages(username: str):
         return new_messages
     finally:
         async with lock:
-            waiting_clients[:] = [(u, q) for u, q in waiting_clients if q != my_queue]
+            waiting_clients.pop(username, None)
             print(f"Клиент {username} удалён из очереди.")
+
+        await cleanup_messages()
+
+async def cleanup_messages():
+    async with lock:
+        all_received = True
+        for username in waiting_clients:
+            for msg in messages:
+                if msg.username != username:
+                    all_received = False
+                    break
+            if not all_received:
+                break
+
+        if all_received:
+            print("Все сообщения отправлены всем клиентам, очищаем очередь сообщений...")
+            messages.clear()
