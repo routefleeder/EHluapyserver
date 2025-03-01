@@ -56,12 +56,9 @@ async def get_messages(username: str):
 async def cleanup_messages():
     async with lock:
         all_received = True
-        for username in waiting_clients:
-            for msg in messages:
-                if msg.username != username:
-                    all_received = False
-                    break
-            if not all_received:
+        for username, client_queue in waiting_clients:
+            if not client_queue.empty():
+                all_received = False
                 break
 
         if all_received:
