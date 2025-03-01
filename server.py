@@ -35,4 +35,5 @@ async def get_messages(username: str):
         messages = await my_queue.get()
         return [msg for msg in messages if msg.username != username]
     except asyncio.CancelledError:
+        print(f"Клиент {username} отключился!")
         waiting_clients.remove((username, my_queue))
