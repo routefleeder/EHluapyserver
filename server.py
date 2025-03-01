@@ -20,7 +20,7 @@ async def send_message(msg: ChatMessage):
         messages.append(msg)
         if waiting_clients:
             print(f"Новое сообщение от {msg.username}: {msg.text}. Отправляем ожидающим клиентам...")
-            for username, client_queue in list(waiting_clients.items()):
+            for username, client_queue in waiting_clients[:]:
                 if username != msg.username:
                     await client_queue.put(messages[:])
 
@@ -36,7 +36,7 @@ async def get_messages(username: str):
             print(f"Клиент {username} подключился, сразу отправляем ему {len(pending_messages)} сообщений.")
             return pending_messages
         
-        waiting_clients[username] = my_queue
+        waiting_clients.append((username, my_queue))
 
     try:
         print(f"Клиент {username} ожидает сообщение...")
@@ -45,7 +45,7 @@ async def get_messages(username: str):
         return new_messages
     finally:
         async with lock:
-            waiting_clients.pop(username, None)
+            waiting_clients[:] = [(u, q) for u, q in waiting_clients if u != username]
             print(f"Клиент {username} удалён из очереди.")
 
         await cleanup_messages()
