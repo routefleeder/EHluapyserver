@@ -35,4 +35,4 @@ async def get_messages(username: str):
         messages = await my_queue.get()
         return [msg for msg in messages if msg.username != username]
     finally:
-        waiting_clients.remove((username, my_queue))
+        waiting_clients[:] = [(u, q) for u, q in waiting_clients if u != username or q != my_queue]
