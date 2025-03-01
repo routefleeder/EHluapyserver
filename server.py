@@ -29,6 +29,9 @@ async def send_message(msg: ChatMessage):
 @app.get("/api/notify", response_model=List[ChatMessage])
 async def get_messages(username: str):
     """ Клиент ждёт новые сообщения. Сервер не отвечает сразу, если их нет. """
+    # Временные логи
+    print(f"Получен запрос от клиента {username} на получение сообщений.")
+    #
     my_queue = asyncio.Queue()
     async with lock:
         pending_messages = [msg for msg in messages if msg.username != username]
