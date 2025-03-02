@@ -19,15 +19,11 @@ async def send_message(msg: ChatMessage):
     async with lock:
         messages.append(msg)
         print(f"Новое сообщение от {msg.username}: {msg.text}. Рассылаем клиентам...")
-        
-        to_remove = []
-        for username, future in waiting_clients.items():
-            if username != msg.username and not future.done():
-                future.set_result(messages.copy())  # Отправляем все сообщения сразу
-                to_remove.append(username)
 
-        for username in to_remove:
-            waiting_clients.pop(username, None)
+        for username, future in list(waiting_clients.items()):
+            if username != msg.username and not future.done():
+                future.set_result([msg])  # Отправляем только новое сообщение
+                del waiting_clients[username]
 
     return {"status": "ok"}
 
@@ -37,10 +33,10 @@ async def get_messages(username: str):
         pending_messages = [msg for msg in messages if msg.username != username]
         if pending_messages:
             return pending_messages
-        
+
         future = asyncio.get_event_loop().create_future()
         waiting_clients[username] = future
-    
+
     try:
         return await future
     except Exception as e:
