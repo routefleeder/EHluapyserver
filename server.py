@@ -20,13 +20,16 @@ async def send_message(msg: ChatMessage):
         messages.append(msg)
         print(f"Новое сообщение от {msg.username}: {msg.text}. Рассылаем ожидающим клиентам...")
 
+        # Сообщение отправляется всем, кто его ждал
         to_remove = []
         for username, future in waiting_clients.items():
             if username != msg.username and not future.done():
                 print(f"Отправляем сообщение клиенту {username}")
-                future.set_result([msg])  # Отправка этого сообщения клиенту
+                # Отправляем все сообщения, которые могут быть
+                future.set_result([msg])
                 to_remove.append(username)
 
+        # Удаляем из очереди клиентов, получивших свои сообщения
         for username in to_remove:
             waiting_clients.pop(username, None)
 
@@ -39,7 +42,7 @@ async def get_messages(username: str):
     print(f"Получен запрос от клиента {username} на получение сообщений.")
 
     async with lock:
-        # Берём все сообщения, кроме сообщений от самого клиента
+        # Выбираем все сообщения, кроме тех, что были отправлены этому клиенту
         pending_messages = [msg for msg in messages if msg.username != username]
 
         # Если есть сообщения, отправляем их сразу
@@ -47,16 +50,16 @@ async def get_messages(username: str):
             print(f"Клиент {username} сразу получает {len(pending_messages)} сообщений.")
             return pending_messages
 
-        # Если сообщений нет, ждём их
+        # Если сообщений нет, то создаём будущий объект, в котором будем ждать сообщения
         future = asyncio.get_event_loop().create_future()
         waiting_clients[username] = future
 
     try:
         print(f"Клиент {username} ждёт новые сообщения...")
-        # Ждём, пока не появится новое сообщение
+        # Когда сообщение появится, оно будет отправлено клиенту
         return await future
     finally:
         async with lock:
-            # После того как клиент получил сообщения, он удаляется из очереди
+            # После того как клиент получит свои сообщения, удаляем его из очереди
             waiting_clients.pop(username, None)
             print(f"Клиент {username} удалён из очереди ожидания.")
