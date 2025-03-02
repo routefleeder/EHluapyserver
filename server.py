@@ -23,6 +23,8 @@ async def send_message(msg: ChatMessage):
         to_remove = []
         for username, future in waiting_clients.items():
             if username != msg.username and not future.done():
+                print(f"Попытка отправить сообщение клиенту {username}")
+                print(f"Отправляем сообщение клиенту {username}")
                 future.set_result([msg])
                 to_remove.append(username)
 
