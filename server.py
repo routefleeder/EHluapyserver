@@ -32,9 +32,9 @@ async def send_message(msg: ChatMessage):
         for username in to_remove:
             waiting_clients.pop(username, None)
 
-        if to_remove:
-            messages.clear()
-            print("(send_message): Все сообщения отправлены всем клиентам, очищаем очередь сообщений...")
+        if to_remove and msg in messages:
+            messages.remove(msg)
+            print(f"Сообщение '{msg.text}' удалено из очереди после отправки.")
 
         print(f"Очередь после удаления клиентов: {[u for u in waiting_clients]}")
 
