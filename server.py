@@ -30,10 +30,13 @@ async def send_message(msg: ChatMessage):
 @app.get("/api/notify", response_model=List[ChatMessage])
 async def get_messages(username: str):
     async with lock:
+        # Фильтруем сообщения, чтобы не отправлять клиенту его собственные сообщения
         pending_messages = [msg for msg in messages if msg.username != username]
+        
         if pending_messages:
             return pending_messages
 
+        # Если нет новых сообщений, ждем их
         future = asyncio.get_event_loop().create_future()
         waiting_clients[username] = future
 
@@ -42,5 +45,6 @@ async def get_messages(username: str):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     finally:
+        # Убираем клиента из списка ожидания
         async with lock:
             waiting_clients.pop(username, None)
