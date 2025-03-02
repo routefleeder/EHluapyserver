@@ -6,7 +6,7 @@ import asyncio
 app = FastAPI()
 
 messages = []
-waiting_clients: Dict[str, asyncio.Queue] = {}
+waiting_clients: Dict[str, asyncio.Future] = {}
 lock = asyncio.Lock()
 
 class ChatMessage(BaseModel):
@@ -20,9 +20,14 @@ async def send_message(msg: ChatMessage):
         messages.append(msg)
         print(f"Новое сообщение от {msg.username}: {msg.text}. Отправляем ожидающим клиентам...")
 
-        for username, queue in waiting_clients.items():
-            if username != msg.username:
-                await queue.put(msg)
+        to_remove = []
+        for username, future in waiting_clients.items():
+            if username != msg.username and not future.done():
+                future.set_result([msg])
+                to_remove.append(username)
+
+        for username in to_remove:
+            waiting_clients.pop(username, None)
 
     return {"status": "ok"}
 
@@ -30,6 +35,7 @@ async def send_message(msg: ChatMessage):
 async def get_messages(username: str):
     """ Клиент ждёт новые сообщения, если их нет. """
     print(f"Получен запрос от клиента {username} на получение сообщений.")
+    
     async with lock:
         pending_messages = [msg for msg in messages if msg.username != username]
         
@@ -38,14 +44,14 @@ async def get_messages(username: str):
             messages[:] = [msg for msg in messages if msg.username == username]
             return pending_messages
 
-        queue = asyncio.Queue()
-        waiting_clients[username] = queue
+        future = asyncio.get_event_loop().create_future()
+        waiting_clients[username] = future
 
     try:
         print(f"Клиент {username} ожидает сообщение...")
-        new_message = await queue.get()
+        new_messages = await future
         print(f"Отправляем сообщение клиенту {username}!")
-        return [new_message]
+        return new_messages
     finally:
         async with lock:
             waiting_clients.pop(username, None)
