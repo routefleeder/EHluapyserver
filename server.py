@@ -24,12 +24,15 @@ async def send_message(msg: ChatMessage):
         for username, future in waiting_clients.items():
             if username != msg.username and not future.done():
                 print(f"Попытка отправить сообщение клиенту {username}")
-                print(f"Отправляем сообщение клиенту {username}")
+                print(f"Очередь перед отправкой: {[u for u in waiting_clients]}")
                 future.set_result([msg])
+                print(f"Отправляем сообщение клиенту {username}!")
                 to_remove.append(username)
 
         for username in to_remove:
             waiting_clients.pop(username, None)
+
+        print(f"Очередь после удаления клиентов: {[u for u in waiting_clients]}")
 
     return {"status": "ok"}
 
@@ -52,7 +55,7 @@ async def get_messages(username: str):
     try:
         print(f"Клиент {username} ожидает сообщение...")
         new_messages = await future
-        print(f"Отправляем сообщение клиенту {username}!")
+        print(f"Отправляем сообщение клиенту {username}!!!")
         return new_messages
     finally:
         async with lock:
