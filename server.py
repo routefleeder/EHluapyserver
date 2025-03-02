@@ -26,15 +26,11 @@ async def send_message(msg: ChatMessage):
                 print(f"Попытка отправить сообщение клиенту {username}")
                 print(f"Очередь перед отправкой: {[u for u in waiting_clients]}")
                 future.set_result([msg])
-                print(f"Отправляем сообщение клиенту {username}!")
+                print(f"Отправляем сообщение клиенту {username}!!!")
                 to_remove.append(username)
 
         for username in to_remove:
             waiting_clients.pop(username, None)
-
-        if to_remove and msg in messages:
-            messages.remove(msg)
-            print(f"Сообщение '{msg.text}' удалено из очереди после отправки.")
 
         print(f"Очередь после удаления клиентов: {[u for u in waiting_clients]}")
 
@@ -44,10 +40,10 @@ async def send_message(msg: ChatMessage):
 async def get_messages(username: str):
     """ Клиент ждёт новые сообщения, если их нет. """
     print(f"Получен запрос от клиента {username} на получение сообщений.")
-    
+
     async with lock:
         pending_messages = [msg for msg in messages if msg.username != username]
-        
+
         if pending_messages:
             print(f"Клиент {username} подключился, сразу отправляем ему {len(pending_messages)} сообщений.")
             messages[:] = [msg for msg in messages if msg.username == username]
@@ -58,18 +54,14 @@ async def get_messages(username: str):
 
     try:
         print(f"Клиент {username} ожидает сообщение...")
-        new_messages = await future
-        print(f"Отправляем сообщение клиенту {username}!!!")
-        return new_messages
+        return await future
     finally:
         async with lock:
             waiting_clients.pop(username, None)
             print(f"Клиент {username} удалён из очереди.")
 
-        await cleanup_messages()
-
-async def cleanup_messages():
-    async with lock:
-        if not waiting_clients:
-            print("Все сообщения отправлены всем клиентам, очищаем очередь сообщений...")
-            messages.clear()
+        # Чистим сообщения только если **все** клиенты их получили
+        async with lock:
+            if not waiting_clients:
+                print("Все сообщения доставлены, очищаем очередь сообщений...")
+                messages.clear()
