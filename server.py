@@ -5,14 +5,14 @@ import asyncio
 
 app = FastAPI()
 
-messages: List[ChatMessage] = []
-waiting_clients: Dict[str, asyncio.Future] = {}
-lock = asyncio.Lock()
-
 class ChatMessage(BaseModel):
     username: str
     playerid: int
     text: str
+
+messages: List[ChatMessage] = []
+waiting_clients: Dict[str, asyncio.Future] = {}
+lock = asyncio.Lock()
 
 @app.post("/api/notify")
 async def send_message(msg: ChatMessage):
