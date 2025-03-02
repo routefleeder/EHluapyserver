@@ -5,7 +5,7 @@ import asyncio
 
 app = FastAPI()
 
-messages = []
+messages: List[ChatMessage] = []
 waiting_clients: Dict[str, asyncio.Future] = {}
 lock = asyncio.Lock()
 
@@ -18,50 +18,40 @@ class ChatMessage(BaseModel):
 async def send_message(msg: ChatMessage):
     async with lock:
         messages.append(msg)
-        print(f"Новое сообщение от {msg.username}: {msg.text}. Отправляем ожидающим клиентам...")
+        print(f"Новое сообщение от {msg.username}: {msg.text}. Рассылаем ожидающим клиентам...")
 
         to_remove = []
         for username, future in waiting_clients.items():
             if username != msg.username and not future.done():
-                print(f"Попытка отправить сообщение клиенту {username}")
-                print(f"Очередь перед отправкой: {[u for u in waiting_clients]}")
+                print(f"Отправляем сообщение клиенту {username}")
                 future.set_result([msg])
-                print(f"Отправляем сообщение клиенту {username}!!!")
                 to_remove.append(username)
 
         for username in to_remove:
             waiting_clients.pop(username, None)
 
-        print(f"Очередь после удаления клиентов: {[u for u in waiting_clients]}")
+        print(f"Текущая очередь ожидания: {list(waiting_clients.keys())}")
 
     return {"status": "ok"}
 
 @app.get("/api/notify", response_model=List[ChatMessage])
 async def get_messages(username: str):
-    """ Клиент ждёт новые сообщения, если их нет. """
     print(f"Получен запрос от клиента {username} на получение сообщений.")
 
     async with lock:
         pending_messages = [msg for msg in messages if msg.username != username]
 
         if pending_messages:
-            print(f"Клиент {username} подключился, сразу отправляем ему {len(pending_messages)} сообщений.")
-            messages[:] = [msg for msg in messages if msg.username == username]
+            print(f"Клиент {username} сразу получает {len(pending_messages)} сообщений.")
             return pending_messages
 
         future = asyncio.get_event_loop().create_future()
         waiting_clients[username] = future
 
     try:
-        print(f"Клиент {username} ожидает сообщение...")
+        print(f"Клиент {username} ждёт новые сообщения...")
         return await future
     finally:
         async with lock:
             waiting_clients.pop(username, None)
-            print(f"Клиент {username} удалён из очереди.")
-
-        # Чистим сообщения только если **все** клиенты их получили
-        async with lock:
-            if not waiting_clients:
-                print("Все сообщения доставлены, очищаем очередь сообщений...")
-                messages.clear()
+            print(f"Клиент {username} удалён из очереди ожидания.")
