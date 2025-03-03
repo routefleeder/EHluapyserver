@@ -4,7 +4,7 @@ app = FastAPI()
 
 active_clients = set()
 active_sender: WebSocket | None = None
-message_sent = False  # Флаг, чтобы сообщение можно было отправить только один раз
+message_sent = False
 
 
 @app.websocket("/ws")
@@ -26,11 +26,13 @@ async def websocket_endpoint(websocket: WebSocket):
             if message == "deactivate":
                 if active_sender == websocket:
                     active_sender = None
-                    message_sent = False  # Разрешаем отправку нового сообщения
+                    message_sent = False
                     await websocket.send_text("deactivated")
                     print(f"Active sender {websocket} deactivated")
                 else:
-                    await websocket.send_text("no_active_event")
+                    if active_sender is None:
+                        await websocket.send_text("no_active_event")
+                    pass
                 continue
 
             if active_sender == websocket:
@@ -45,11 +47,11 @@ async def websocket_endpoint(websocket: WebSocket):
 
             if not message_sent:
                 active_sender = websocket
-                message_sent = True  # Блокируем повторные отправки
+                message_sent = True
                 print(f"Setting active_sender to {websocket}")
 
                 disconnected_clients = []
-                for client in active_clients:
+                for client in list(active_clients):
                     try:
                         await client.send_text(message)
                     except Exception as e:
@@ -65,7 +67,7 @@ async def websocket_endpoint(websocket: WebSocket):
         active_clients.discard(websocket)
         if active_sender == websocket:
             active_sender = None
-            message_sent = False  # Разрешаем отправку нового сообщения
+            message_sent = False
             for client in active_clients:
                 await client.send_text("player_discon")
         print(f"Клиент отключился: {websocket}")
