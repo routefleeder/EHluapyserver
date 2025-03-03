@@ -22,6 +22,10 @@ async def websocket_endpoint(websocket: WebSocket):
 
             print(f"Received message from {websocket}: {message}")
 
+            if active_sender == websocket:
+                await websocket.send_text("deactivate_first")
+                continue
+
             if message == "deactivate":
                 if active_sender == websocket:
                     active_sender = None
@@ -32,7 +36,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             print(f"Checking active_sender: {active_sender}")
-            if active_sender is not None and active_sender != websocket:
+            if active_sender is not None:
                 print(f"Waiting for deactivation. Sending 'wait_for_deactivation' to {websocket}")
                 await websocket.send_text("wait_for_deactivation")
                 print("Sent 'wait_for_deactivation' to ", websocket)
