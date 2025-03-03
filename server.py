@@ -27,6 +27,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     active_sender = None
                     await websocket.send_text("deactivated")
                     print(f"Active sender {websocket} deactivated")
+                else:
+                    await websocket.send_text("no_active_event")
                 continue
 
             print(f"Checking active_sender: {active_sender}")
@@ -47,4 +49,6 @@ async def websocket_endpoint(websocket: WebSocket):
         active_clients.discard(websocket)
         if active_sender == websocket:
             active_sender = None
+            for client in active_clients:
+                await client.send_text("player_discon")
         print(f"Клиент отключился: {websocket}")
