@@ -4,11 +4,12 @@ app = FastAPI()
 
 active_clients = set()
 active_sender: WebSocket | None = None
+message_sent = False  # Флаг, чтобы сообщение можно было отправить только один раз
 
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global active_sender
+    global active_sender, message_sent
     await websocket.accept()
     active_clients.add(websocket)
     print(f"New client connected: {websocket}")
@@ -25,6 +26,7 @@ async def websocket_endpoint(websocket: WebSocket):
             if message == "deactivate":
                 if active_sender == websocket:
                     active_sender = None
+                    message_sent = False  # Разрешаем отправку нового сообщения
                     await websocket.send_text("deactivated")
                     print(f"Active sender {websocket} deactivated")
                 else:
@@ -39,28 +41,31 @@ async def websocket_endpoint(websocket: WebSocket):
             if active_sender is not None and active_sender != websocket:
                 print(f"Waiting for deactivation. Sending 'wait_for_deactivation' to {websocket}")
                 await websocket.send_text("wait_for_deactivation")
-                print("Sent 'wait_for_deactivation' to ", websocket)
                 continue
 
-            active_sender = websocket
-            print(f"Setting active_sender to {websocket}")
+            if not message_sent:
+                active_sender = websocket
+                message_sent = True  # Блокируем повторные отправки
+                print(f"Setting active_sender to {websocket}")
 
-            disconnected_clients = []
-            for client in active_clients:
-                try:
-                    await client.send_text(message)
-                except Exception as e:
-                    print(f"Error sending message to {client}: {e}")
-                    disconnected_clients.append(client)
+                disconnected_clients = []
+                for client in active_clients:
+                    try:
+                        await client.send_text(message)
+                    except Exception as e:
+                        print(f"Error sending message to {client}: {e}")
+                        disconnected_clients.append(client)
 
-            # Удаляем отключившихся клиентов
-            for client in disconnected_clients:
-                active_clients.discard(client)
+                for client in disconnected_clients:
+                    active_clients.discard(client)
+            else:
+                await websocket.send_text("deactivate_first")
 
     except WebSocketDisconnect:
         active_clients.discard(websocket)
         if active_sender == websocket:
             active_sender = None
+            message_sent = False  # Разрешаем отправку нового сообщения
             for client in active_clients:
                 await client.send_text("player_discon")
         print(f"Клиент отключился: {websocket}")
