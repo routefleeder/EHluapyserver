@@ -8,6 +8,7 @@ active_sender = None
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    global active_sender
     await websocket.accept()
     active_clients.add(websocket)
 
