@@ -3,7 +3,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 app = FastAPI()
 
 active_clients = set()
-active_sender = None
+active_sender: WebSocket | None = None
 
 
 @app.websocket("/ws")
@@ -28,8 +28,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text("deactivated")
                     print(f"Active sender {websocket} deactivated")
                 else:
-                    if active_sender is None:
-                        await websocket.send_text("no_active_event")
+                    await websocket.send_text("no_active_event")
                 continue
 
             if active_sender == websocket:
@@ -46,8 +45,17 @@ async def websocket_endpoint(websocket: WebSocket):
             active_sender = websocket
             print(f"Setting active_sender to {websocket}")
 
+            disconnected_clients = []
             for client in active_clients:
-                await client.send_text(message)
+                try:
+                    await client.send_text(message)
+                except Exception as e:
+                    print(f"Error sending message to {client}: {e}")
+                    disconnected_clients.append(client)
+
+            # Удаляем отключившихся клиентов
+            for client in disconnected_clients:
+                active_clients.discard(client)
 
     except WebSocketDisconnect:
         active_clients.discard(websocket)
