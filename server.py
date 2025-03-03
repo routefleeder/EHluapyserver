@@ -15,7 +15,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_text()
 
-            global active_sender
+            active_sender = websocket
 
             if message == "deactivate":
                 if active_sender == websocket:
@@ -26,8 +26,6 @@ async def websocket_endpoint(websocket: WebSocket):
             if active_sender and active_sender != websocket:
                 await websocket.send_text("wait_for_deactivation")
                 continue
-
-            active_sender = websocket
 
             for client in active_clients:
                 await client.send_text(message)
