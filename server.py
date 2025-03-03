@@ -37,7 +37,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("deactivate_first")
                 continue
 
-            if active_sender is not None:
+            # Если есть активный отправитель, но он не тот же, кто послал запрос
+            if active_sender is not None and active_sender != websocket:
                 await websocket.send_text("wait_for_deactivation")
                 continue
 
@@ -48,13 +49,15 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"Setting active_sender to {websocket}")
 
                 disconnected_clients = []
-                for client in list(active_clients):  # Создаем копию списка, чтобы избежать изменений во время итерации
+                # Создаем копию списка, чтобы избежать изменений во время итерации
+                for client in list(active_clients):
                     try:
                         await client.send_text(message)
                     except Exception as e:
                         print(f"Error sending message to {client}: {e}")
                         disconnected_clients.append(client)
 
+                # Удаляем отключившихся клиентов
                 for client in disconnected_clients:
                     active_clients.discard(client)
 
@@ -65,8 +68,8 @@ async def websocket_endpoint(websocket: WebSocket):
         active_clients.discard(websocket)
         if active_sender == websocket:
             active_sender = None
-            message_sent = False  # Разрешаем следующему клиенту отправлять сообщения
-            for client in list(active_clients):  # Отправляем оставшимся клиентам сообщение о дисконнекте
+            message_sent = False  # Сбрасываем флаг, чтобы следующий клиент мог отправить сообщение
+            for client in list(active_clients):
                 try:
                     await client.send_text("player_discon")
                 except:
