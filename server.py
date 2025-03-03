@@ -11,6 +11,7 @@ async def websocket_endpoint(websocket: WebSocket):
     global active_sender
     await websocket.accept()
     active_clients.add(websocket)
+    print(f"New client connected: {websocket}")
 
     try:
         while True:
@@ -19,22 +20,25 @@ async def websocket_endpoint(websocket: WebSocket):
             if not message:
                 continue
 
-            print(f"Received message: {message}")
+            print(f"Received message from {websocket}: {message}")
 
             if message == "deactivate":
                 if active_sender == websocket:
                     active_sender = None
                     await websocket.send_text("deactivated")
+                    print(f"Active sender {websocket} deactivated")
                 continue
 
-            print(f"Checking if active_sender is None or if it is {active_sender} and not {websocket}")
+            print(f"Checking active_sender: {active_sender}")
             if active_sender is not None and active_sender != websocket:
+                print(f"Waiting for deactivation. Sending 'wait_for_deactivation' to {websocket}")
                 await websocket.send_text("wait_for_deactivation")
                 print("Sent 'wait_for_deactivation' to ", websocket)
                 continue
 
-            active_sender = websocket
-            print(f"Setting active_sender to {websocket}")
+            if active_sender is None:
+                active_sender = websocket
+                print(f"Setting active_sender to {websocket}")
 
             for client in active_clients:
                 await client.send_text(message)
@@ -43,4 +47,4 @@ async def websocket_endpoint(websocket: WebSocket):
         active_clients.discard(websocket)
         if active_sender == websocket:
             active_sender = None
-        print(f"Клиент отключился")
+        print(f"Клиент отключился: {websocket}")
