@@ -37,15 +37,14 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             print(f"Checking active_sender: {active_sender}")
-            if active_sender is not None:
+            if active_sender is not None and active_sender != websocket:
                 print(f"Waiting for deactivation. Sending 'wait_for_deactivation' to {websocket}")
                 await websocket.send_text("wait_for_deactivation")
                 print("Sent 'wait_for_deactivation' to ", websocket)
                 continue
 
-            if active_sender is None:
-                active_sender = websocket
-                print(f"Setting active_sender to {websocket}")
+            active_sender = websocket
+            print(f"Setting active_sender to {websocket}")
 
             for client in active_clients:
                 await client.send_text(message)
