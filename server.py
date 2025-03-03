@@ -15,22 +15,23 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             message = await websocket.receive_text()
 
-            if message is not None and message != '':
+            if not message:
+                continue
 
+            if message == "deactivate":
+                if active_sender == websocket:
+                    active_sender = None
+                    await websocket.send_text("deactivated")
+                continue
+
+            if active_sender is not None and active_sender != websocket:
+                await websocket.send_text("wait_for_deactivation")
+                continue
+            else:
                 active_sender = websocket
-    
-                if message == "deactivate":
-                    if active_sender == websocket:
-                        active_sender = None
-                        await websocket.send_text("deactivated")
-                    continue
-    
-                if active_sender and active_sender != websocket:
-                    await websocket.send_text("wait_for_deactivation")
-                    continue
-    
-                for client in active_clients:
-                    await client.send_text(message)
+
+            for client in active_clients:
+                await client.send_text(message)
 
     except WebSocketDisconnect:
         active_clients.discard(websocket)
