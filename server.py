@@ -51,7 +51,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"Setting active_sender to {websocket}")
 
                 disconnected_clients = []
-                for client in list(active_clients):
+                for client in active_clients:
                     try:
                         await client.send_text(message)
                     except Exception as e:
