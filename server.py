@@ -12,13 +12,14 @@ async def websocket_endpoint(websocket: WebSocket):
     global active_clients, active_sender, message_sent
 
     try:
-        await websocket.accept()
-        active_clients[id(websocket)] = websocket
-        print(f"New client connected: {websocket}")
-        print("\n", list(active_clients.keys()), "\n")
-        for client_id, client in list(active_clients.items()):
+        if websocket not in active_clients.values():
+            await websocket.accept()
+            active_clients[websocket] = websocket
+            print(f"New client connected: {websocket}")
             print("\n", list(active_clients.keys()), "\n")
-            await client.send_text(f"Online: {len(active_clients)}")
+            for client_id, client in list(active_clients.items()):
+                print("\n", list(active_clients.keys()), "\n")
+                await client.send_text(f"Online: {len(active_clients)}")
         while True:
             message = await websocket.receive_text()
 
@@ -62,7 +63,8 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("deactivate_first")
 
     except WebSocketDisconnect:
-        active_clients.pop(id(websocket), None)
+        await websocket.close()
+        active_clients.pop(websocket, None)
         if active_sender == websocket:
             active_sender = None
             message_sent = False
