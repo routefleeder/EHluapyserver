@@ -9,7 +9,7 @@ message_sent = False
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
-    global active_sender, message_sent
+    global active_clients, active_sender, message_sent
     await websocket.accept()
     active_clients.add(websocket)
     print(f"New client connected: {websocket}")
@@ -33,6 +33,7 @@ async def websocket_endpoint(websocket: WebSocket):
                     disconnected_clients = []
                     for client in list(active_clients):
                         try:
+                            print("\n", active_clients, "\n")
                             await client.send_text("emergency_deactivated")
                         except Exception as e:
                             print(f"Error sending message to {client}: {e}")
@@ -60,6 +61,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 disconnected_clients = []
                 for client in list(active_clients):
                     try:
+                        print("\n", active_clients, "\n")
                         await client.send_text(message)
                     except Exception as e:
                         print(f"Error sending message to {client}: {e}")
@@ -78,6 +80,7 @@ async def websocket_endpoint(websocket: WebSocket):
             message_sent = False
             for client in list(active_clients):
                 try:
+                    print("\n", active_clients, "\n")
                     await client.send_text("player_discon")
                 except:
                     pass
