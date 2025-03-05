@@ -18,7 +18,7 @@ async def websocket_endpoint(websocket: WebSocket):
         print("\n", list(active_clients.keys()), "\n")
         for client_id, client in list(active_clients.items()):
             print("\n", list(active_clients.keys()), "\n")
-            await client.send_text("Online: ", len(active_clients))
+            await client.send_text(f"Online: {len(active_clients)}")
         while True:
             message = await websocket.receive_text()
 
