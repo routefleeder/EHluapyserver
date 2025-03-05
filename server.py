@@ -63,7 +63,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 await websocket.send_text("deactivate_first")
 
     except WebSocketDisconnect:
-        await websocket.close()
         active_clients.pop(websocket, None)
         if active_sender == websocket:
             active_sender = None
