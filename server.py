@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 app = FastAPI()
 
-active_clients = {}
+active_clients = set()
 active_sender: WebSocket | None = None
 message_sent = False
 
@@ -14,11 +14,11 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         if websocket not in active_clients.values():
             await websocket.accept()
-            active_clients[websocket] = websocket
+            active_clients.add(websocket)
             print(f"New client connected: {websocket}")
-            print("\n", list(active_clients.keys()), "\n")
-            for client_id, client in list(active_clients.items()):
-                print("\n", list(active_clients.keys()), "\n")
+            print("\n", list(active_clients), "\n")
+            for client in active_clients:
+                print("\n", list(active_clients), "\n")
                 await client.send_text(f"Online: {len(active_clients)}")
         while True:
             message = await websocket.receive_text()
@@ -35,8 +35,8 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text("deactivated")
                     print(f"Active sender {websocket} deactivated")
                     
-                    for client_id, client in list(active_clients.items()):
-                        print("\n", list(active_clients.keys()), "\n")
+                    for client in active_clients:
+                        print("\n", list(active_clients), "\n")
                         await client.send_text("emergency_deactivated")
                 else:
                     await websocket.send_text("no_active_event")
@@ -55,21 +55,22 @@ async def websocket_endpoint(websocket: WebSocket):
                 message_sent = True
                 print(f"Setting active_sender to {websocket}")
 
-                for client_id, client in list(active_clients.items()):
-                    print("\n", list(active_clients.keys()), "\n")
+                for client in active_clients:
+                    print("\n", list(active_clients), "\n")
                     await client.send_text(message)
 
             else:
                 await websocket.send_text("deactivate_first")
 
     except WebSocketDisconnect:
-        active_clients.pop(websocket, None)
+        if websocket in active_clients:
+            active_clients.remove(websocket)
         if active_sender == websocket:
             active_sender = None
             message_sent = False
-            for client_id, client in list(active_clients.items()):
+            for client in active_clients
                 try:
-                    print("\n", list(active_clients.keys()), "\n")
+                    print("\n", list(active_clients), "\n")
                     await client.send_text("player_discon")
                     await client.send_text(f"Online: {len(active_clients)}")
                 except:
