@@ -68,7 +68,7 @@ async def websocket_endpoint(websocket: WebSocket):
         if active_sender == websocket:
             active_sender = None
             message_sent = False
-            for client in active_clients
+            for client in active_clients:
                 try:
                     print("\n", list(active_clients), "\n")
                     await client.send_text("player_discon")
