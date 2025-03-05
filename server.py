@@ -10,11 +10,11 @@ message_sent = False
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     global active_clients, active_sender, message_sent
-    await websocket.accept()
-    active_clients[id(websocket)] = websocket
-    print(f"New client connected: {websocket}")
 
     try:
+        await websocket.accept()
+        active_clients[id(websocket)] = websocket
+        print(f"New client connected: {websocket}")
         while True:
             message = await websocket.receive_text()
 
