@@ -15,6 +15,10 @@ async def websocket_endpoint(websocket: WebSocket):
         await websocket.accept()
         active_clients[id(websocket)] = websocket
         print(f"New client connected: {websocket}")
+        print("\n", list(active_clients.keys()), "\n")
+        for client_id, client in list(active_clients.items()):
+            print("\n", list(active_clients.keys()), "\n")
+            await client.send_text("Online: ", len(active_clients))
         while True:
             message = await websocket.receive_text()
 
@@ -30,17 +34,9 @@ async def websocket_endpoint(websocket: WebSocket):
                     await websocket.send_text("deactivated")
                     print(f"Active sender {websocket} deactivated")
                     
-                    disconnected_clients = []
                     for client_id, client in list(active_clients.items()):
-                        try:
-                            print("\n", list(active_clients.keys()), "\n")
-                            await client.send_text("emergency_deactivated")
-                        except Exception as e:
-                            print(f"Error sending message to {client}: {e}")
-                            disconnected_clients.append(client_id)
-    
-                    for client_id in disconnected_clients:
-                        active_clients.pop(client_id, None)
+                        print("\n", list(active_clients.keys()), "\n")
+                        await client.send_text("emergency_deactivated")
                 else:
                     await websocket.send_text("no_active_event")
                 continue
@@ -58,17 +54,9 @@ async def websocket_endpoint(websocket: WebSocket):
                 message_sent = True
                 print(f"Setting active_sender to {websocket}")
 
-                disconnected_clients = []
                 for client_id, client in list(active_clients.items()):
-                    try:
-                        print("\n", list(active_clients.keys()), "\n")
-                        await client.send_text(message)
-                    except Exception as e:
-                        print(f"Error sending message to {client}: {e}")
-                        disconnected_clients.append(client_id)
-
-                for client_id in disconnected_clients:
-                    active_clients.pop(client_id, None)
+                    print("\n", list(active_clients.keys()), "\n")
+                    await client.send_text(message)
 
             else:
                 await websocket.send_text("deactivate_first")
