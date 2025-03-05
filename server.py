@@ -12,7 +12,7 @@ async def websocket_endpoint(websocket: WebSocket):
     global active_clients, active_sender, message_sent
 
     try:
-        if websocket not in active_clients.values():
+        if websocket not in active_clients:
             await websocket.accept()
             active_clients.add(websocket)
             print(f"New client connected: {websocket}")
