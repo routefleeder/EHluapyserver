@@ -70,6 +70,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 try:
                     print("\n", list(active_clients.keys()), "\n")
                     await client.send_text("player_discon")
+                    await client.send_text(f"Online: {len(active_clients)}")
                 except:
                     pass
         print(f"Клиент отключился: {websocket}")
