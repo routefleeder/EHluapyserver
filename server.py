@@ -2,7 +2,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 
 app = FastAPI()
 
-active_clients = set()
+active_clients = {}
 active_sender: WebSocket | None = None
 message_sent = False
 
@@ -11,7 +11,7 @@ message_sent = False
 async def websocket_endpoint(websocket: WebSocket):
     global active_clients, active_sender, message_sent
     await websocket.accept()
-    active_clients.add(websocket)
+    active_clients[id(websocket)] = websocket
     print(f"New client connected: {websocket}")
 
     try:
@@ -31,16 +31,16 @@ async def websocket_endpoint(websocket: WebSocket):
                     print(f"Active sender {websocket} deactivated")
                     
                     disconnected_clients = []
-                    for client in list(active_clients):
+                    for client_id, client in list(active_clients.items()):
                         try:
-                            print("\n", active_clients, "\n")
+                            print("\n", list(active_clients.keys()), "\n")
                             await client.send_text("emergency_deactivated")
                         except Exception as e:
                             print(f"Error sending message to {client}: {e}")
-                            disconnected_clients.append(client)
+                            disconnected_clients.append(client_id)
     
-                    for client in disconnected_clients:
-                        active_clients.discard(client)
+                    for client_id in disconnected_clients:
+                        active_clients.pop(client_id, None)
                 else:
                     await websocket.send_text("no_active_event")
                 continue
@@ -59,28 +59,28 @@ async def websocket_endpoint(websocket: WebSocket):
                 print(f"Setting active_sender to {websocket}")
 
                 disconnected_clients = []
-                for client in list(active_clients):
+                for client_id, client in list(active_clients.items()):
                     try:
-                        print("\n", active_clients, "\n")
+                        print("\n", list(active_clients.keys()), "\n")
                         await client.send_text(message)
                     except Exception as e:
                         print(f"Error sending message to {client}: {e}")
-                        disconnected_clients.append(client)
+                        disconnected_clients.append(client_id)
 
-                for client in disconnected_clients:
-                    active_clients.discard(client)
+                for client_id in disconnected_clients:
+                    active_clients.pop(client_id, None)
 
             else:
                 await websocket.send_text("deactivate_first")
 
     except WebSocketDisconnect:
-        active_clients.discard(websocket)
+        active_clients.pop(id(websocket), None)
         if active_sender == websocket:
             active_sender = None
             message_sent = False
-            for client in list(active_clients):
+            for client_id, client in list(active_clients.items()):
                 try:
-                    print("\n", active_clients, "\n")
+                    print("\n", list(active_clients.keys()), "\n")
                     await client.send_text("player_discon")
                 except:
                     pass
